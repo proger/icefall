@@ -19,7 +19,7 @@ If the input transcript is:
 
 and if the lexicon is
 
-    <UNK> SPN
+    <unk> SPN
     hello h e l l o 2
     hello h e l l o
     world w o r l d
@@ -52,7 +52,7 @@ def get_args():
     )
     parser.add_argument("--lexicon", type=str, help="The input lexicon file.")
     parser.add_argument(
-        "--oov", type=str, default="<UNK>", help="The OOV word."
+        "--oov", type=str, default="<unk>", help="The OOV word."
     )
 
     return parser.parse_args()

@@ -52,7 +52,7 @@ class _SeedWorkers:
         fix_random_seed(self.seed + worker_id)
 
 
-class LibriSpeechAsrDataModule:
+class UkAsrDataModule:
     """
     DataModule for k2 ASR experiments.
     It assumes there is always one train and valid dataloader,
@@ -92,7 +92,7 @@ class LibriSpeechAsrDataModule:
         group.add_argument(
             "--manifest-dir",
             type=Path,
-            default=Path("data/fbank"),
+            default=Path("uk/data/fbank"),
             help="Path to directory with train/valid/test cuts.",
         )
         group.add_argument(
@@ -408,47 +408,41 @@ class LibriSpeechAsrDataModule:
     def train_clean_100_cuts(self) -> CutSet:
         logging.info("About to get train-clean-100 cuts")
         return load_manifest_lazy(
-            self.args.manifest_dir / "librispeech_cuts_train-clean-100.jsonl.gz"
+            self.args.manifest_dir / f"uk_cuts_train-clean-100.jsonl.gz"
         )
 
     @lru_cache()
-    def train_clean_360_cuts(self) -> CutSet:
-        logging.info("About to get train-clean-360 cuts")
-        return load_manifest_lazy(
-            self.args.manifest_dir / "librispeech_cuts_train-clean-360.jsonl.gz"
+    def train_other_cuts(self) -> CutSet:
+        other_cuts = (
+            "train-other.1",
+            "train-other.2",
+            "train-other.3",
+            "train-other.4",
+            "train-other.5",
+            "train-other.6",
+            "train-other.7",
+            "train-other.8",
         )
-
-    @lru_cache()
-    def train_other_500_cuts(self) -> CutSet:
-        logging.info("About to get train-other-500 cuts")
-        return load_manifest_lazy(
-            self.args.manifest_dir / "librispeech_cuts_train-other-500.jsonl.gz"
-        )
-
-    @lru_cache()
-    def dev_clean_cuts(self) -> CutSet:
-        logging.info("About to get dev-clean cuts")
-        return load_manifest_lazy(
-            self.args.manifest_dir / "librispeech_cuts_dev-clean.jsonl.gz"
-        )
+        logging.info(f"About to get {other_cuts} cuts")
+        def load1(part):
+            return load_manifest_lazy(
+                self.args.manifest_dir / f"uk_cuts_{part}.jsonl.gz"
+            )
+        cuts = load1(other_cuts[0])
+        for part in other_cuts[1:]:
+            cuts += load1(part)
+        return cuts
 
     @lru_cache()
     def dev_other_cuts(self) -> CutSet:
-        logging.info("About to get dev-other cuts")
+        logging.info("About to get test-other (for dev) cuts")
         return load_manifest_lazy(
-            self.args.manifest_dir / "librispeech_cuts_dev-other.jsonl.gz"
-        )
-
-    @lru_cache()
-    def test_clean_cuts(self) -> CutSet:
-        logging.info("About to get test-clean cuts")
-        return load_manifest_lazy(
-            self.args.manifest_dir / "librispeech_cuts_test-clean.jsonl.gz"
+            self.args.manifest_dir / "uk_cuts_test-other.jsonl.gz"
         )
 
     @lru_cache()
     def test_other_cuts(self) -> CutSet:
         logging.info("About to get test-other cuts")
         return load_manifest_lazy(
-            self.args.manifest_dir / "librispeech_cuts_test-other.jsonl.gz"
+            self.args.manifest_dir / "uk_cuts_test-other.jsonl.gz"
         )

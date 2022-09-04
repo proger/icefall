@@ -40,7 +40,7 @@ def generate_lexicon_file() -> str:
     s = """
     !SIL SIL
     <SPOKEN_NOISE> SPN
-    <UNK> SPN
+    <unk> SPN
     f f
     a a
     foo f o o

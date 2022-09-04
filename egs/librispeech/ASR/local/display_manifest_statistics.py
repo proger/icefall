@@ -35,7 +35,9 @@ def main():
     #  path = "./data/fbank/librispeech_cuts_dev-clean.jsonl.gz"
     #  path = "./data/fbank/librispeech_cuts_dev-other.jsonl.gz"
     #  path = "./data/fbank/librispeech_cuts_test-clean.jsonl.gz"
-    path = "./data/fbank/librispeech_cuts_test-other.jsonl.gz"
+
+    # . path = "./uk/data/fbank/uk_cuts_train-clean-100.jsonl.gz"
+    path = "./uk/data/fbank/uk_cuts_train-other.1.jsonl.gz"
 
     cuts = load_manifest_lazy(path)
     cuts.describe()
