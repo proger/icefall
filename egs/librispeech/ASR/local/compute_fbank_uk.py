@@ -44,7 +44,7 @@ torch.set_num_interop_threads(1)
 def compute_fbank_librispeech(dataset_parts):
     src_dir = Path("uk/data/manifests.split/")
     output_dir = Path("uk/data/fbank")
-    num_jobs = 15
+    num_jobs = 32
     num_mel_bins = 80
 
     prefix = "uk"
@@ -96,16 +96,24 @@ if __name__ == "__main__":
     logging.basicConfig(format=formatter, level=logging.INFO)
 
     dataset_parts = (
-        "test-other",
         "train-clean-100",
-        #"train-other.1",
-        #"train-other.2",
-        #"train-other.3",
-        #"train-other.4",
-        #"train-other.5",
-        #"train-other.6",
-        #"train-other.7",
-        #"train-other.8",
+        "test-other",
+        "train-other.1",
+        "train-other.2",
+        "train-other.3",
+        "train-other.4",
+        "train-other.5",
+        "train-other.6",
+        "train-other.7",
+        "train-other.8",
+        "train-other.9",
+        "train-other.10",
+        "train-other.11",
+        "train-other.12",
+        "train-other.13",
+        "train-other.14",
+        "train-other.15",
+        "train-other.16",
     )
 
     for part in dataset_parts:

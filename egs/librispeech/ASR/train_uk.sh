@@ -5,9 +5,8 @@ export PYTHONPATH=$HOME/k2/k2/python
   --world-size 2 \
   --num-epochs 30 \
   --start-epoch 1 \
-  --start-batch 24000 \
   --full-libri 1 \
-  --exp-dir pruned_transducer_stateless5/exp-uk \
+  --exp-dir pruned_transducer_stateless5/exp-uk-shuf \
   --max-duration 500 \
   --use-fp16 1 \
   --num-encoder-layers 18 \
@@ -16,4 +15,6 @@ export PYTHONPATH=$HOME/k2/k2/python
   --encoder-dim 256 \
   --decoder-dim 512 \
   --joiner-dim 512 \
-  --bpe-model uk/data/lang_bpe_256/bpe.model
+  --bpe-model uk/data/lang_bpe_250/bpe.model
+
+#  --start-batch 24000 \
