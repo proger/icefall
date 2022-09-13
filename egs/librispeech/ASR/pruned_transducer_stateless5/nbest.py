@@ -10,7 +10,7 @@ import math
 import sentencepiece as spm
 
 from icefall.checkpoint import load_checkpoint
-from decode import get_params
+from train import get_params
 from train import get_transducer_model
 from beam_search import Nbest, get_texts
 
