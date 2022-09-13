@@ -127,9 +127,7 @@ def make_trivial_graph(params):
         params.vocab_size - 1, device='cpu'
     )
 
-def fast_beam_search_nbest_list(model, sp,
-                                encoder_out, encoder_out_lens,
-                                params, decoding_graph):
+def fast_beam_search_lattice(model, encoder_out, encoder_out_lens, params, decoding_graph):
     context_size = model.decoder.context_size
     vocab_size = model.decoder.vocab_size
 
@@ -176,7 +174,10 @@ def fast_beam_search_nbest_list(model, sp,
 
     decoding_streams.terminate_and_flush_to_streams()
     lattice = decoding_streams.format_output(encoder_out_lens.tolist())
+    return lattice
 
+
+def lattice_nbest_list(lattice, sp, params, *, n=-1):
     nbest = Nbest.from_lattice(
         lattice=lattice,
         num_paths=params.num_paths,
@@ -184,14 +185,63 @@ def fast_beam_search_nbest_list(model, sp,
         nbest_scale=params.nbest_scale,
     )
 
-    # at this point, nbest.fsa.scores are all zeros.
-    nbest = nbest.intersect(lattice)
+    # The following code is modified from nbest.intersect()
+    word_fsa = k2.invert(nbest.fsa)
+    if hasattr(lattice, "aux_labels"):
+        # delete token IDs as it is not needed
+        del word_fsa.aux_labels
+    word_fsa.scores.zero_()
+    word_fsa_with_epsilon_loops = k2.linear_fsa_with_self_loops(word_fsa)
+    path_to_utt_map = nbest.shape.row_ids(1)
+
+    if hasattr(lattice, "aux_labels"):
+        # lattice has token IDs as labels and word IDs as aux_labels.
+        # inv_lattice has word IDs as labels and token IDs as aux_labels
+        inv_lattice = k2.invert(lattice)
+        inv_lattice = k2.arc_sort(inv_lattice)
+    else:
+        inv_lattice = k2.arc_sort(lattice)
+
+    if inv_lattice.shape[0] == 1:
+        path_lattice = k2.intersect_device(
+            inv_lattice,
+            word_fsa_with_epsilon_loops,
+            b_to_a_map=torch.zeros_like(path_to_utt_map),
+            sorted_match_a=True,
+        )
+    else:
+        path_lattice = k2.intersect_device(
+            inv_lattice,
+            word_fsa_with_epsilon_loops,
+            b_to_a_map=path_to_utt_map,
+            sorted_match_a=True,
+        )
+
+    # path_lattice has word IDs as labels and token IDs as aux_labels
+    path_lattice = k2.top_sort(k2.connect(path_lattice))
+    tot_scores = path_lattice.get_tot_scores(
+        use_double_scores=True,
+        log_semiring=True,  # Note: we always use True
+    )
+    # See https://github.com/k2-fsa/icefall/pull/420 for why
+    # we always use log_semiring=True
+
+    ragged_tot_scores = k2.RaggedTensor(nbest.shape, tot_scores)
+
     # Now nbest.fsa.scores contains acoustic scores
 
-    entries = []
-    for i in range(nbest.tot_scores().tot_size(1)):
-        path = k2.index_fsa(nbest.fsa, torch.tensor([i], dtype=torch.int32))
+    if n == 1:
+        path = k2.index_fsa(nbest.fsa, ragged_tot_scores.argmax())
         hyp_tokens = get_texts(path)
-        entries.append((-nbest.tot_scores()[0][i].item(), sp.decode(hyp_tokens)))
+        return [(-ragged_tot_scores.max().item(), sp.decode(hyp_tokens))]
+    else:
+        entries = []
+        for i in range(ragged_tot_scores.tot_size(1)):
+            path = k2.index_fsa(nbest.fsa, torch.tensor([i], dtype=torch.int32))
+            hyp_tokens = get_texts(path)
+            entries.append((-ragged_tot_scores[0][i].item(), sp.decode(hyp_tokens)))
 
-    return sorted(entries, key=lambda x: x[0])
+        entries = sorted(entries, key=lambda x: x[0])
+        if n > 1:
+            entries = entries[:n]
+        return entries
