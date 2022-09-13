@@ -424,8 +424,12 @@ def decode_one_batch(
             num_paths=params.num_paths,
             nbest_scale=params.nbest_scale,
         )
-        for hyp in hyp_tokens:
-            hyps.append([word_table[i] for i in hyp])
+        if word_table is not None:
+            for hyp in hyp_tokens:
+                hyps.append([word_table[i] for i in hyp])
+        else:
+            for hyp in sp.decode(hyp_tokens):
+                hyps.append(hyp.split())
     elif params.decoding_method == "fast_beam_search_nbest":
         hyp_tokens = fast_beam_search_nbest(
             model=model,
@@ -799,14 +803,22 @@ def main():
 
     if "fast_beam_search" in params.decoding_method:
         if params.decoding_method == "fast_beam_search_nbest_LG":
-            lexicon = Lexicon(params.lang_dir)
-            word_table = lexicon.word_table
             lg_filename = params.lang_dir / "LG.pt"
-            logging.info(f"Loading {lg_filename}")
-            decoding_graph = k2.Fsa.from_dict(
-                torch.load(lg_filename, map_location=device)
-            )
-            decoding_graph.scores *= params.ngram_lm_scale
+            if lg_filename.exists():
+                lexicon = Lexicon(params.lang_dir)
+                word_table = lexicon.word_table
+                logging.info(f"Loading {lg_filename}")
+                decoding_graph = k2.Fsa.from_dict(
+                    torch.load(lg_filename, map_location=device)
+                )
+                decoding_graph.scores *= params.ngram_lm_scale
+            else:
+                logging.warning(f"No {lg_filename} - using a trivial graph without a word table")
+                word_table = None
+                decoding_graph = k2.trivial_graph(
+                    params.vocab_size - 1, device=device
+                )
+
         else:
             word_table = None
             decoding_graph = k2.trivial_graph(
