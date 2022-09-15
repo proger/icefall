@@ -46,11 +46,11 @@ def hyp(toks):
 def tokenize(s, _toks=re.compile(r'(->|\(|\)|\*|\s)')):
     return [t for t in _toks.split(s) if t.strip()]
 
-def read_alignment(s):
+def read_alignment(s, ignore_leading_deletions=True, ignore_trailing_deletions=True):
     ali = list(both(iter(tokenize(s))))
     sub, cor, ins, del_ = 0, 0, 0, 0
     hypothesis = []
-    for ref, hyp in ali:
+    for i, (ref, hyp) in enumerate(ali):
         if ref == hyp:
             cor += 1
             hypothesis.append(hyp)
@@ -58,11 +58,28 @@ def read_alignment(s):
             ins += 1
             hypothesis.append(hyp)
         elif hyp == '*':
+            if ignore_leading_deletions and del_ == i:
+                hypothesis.append(ref)
             del_ += 1
         else:
             sub += 1
             hypothesis.append(hyp)
+
+    if ignore_trailing_deletions:
+        last_deletion = len(ali)
+        trailing = []
+        for (ref, hyp) in ali[::-1]:
+            if hyp == '*':
+                trailing.append(ref)
+                last_deletion -= 1
+            else:
+                break
+        if last_deletion < len(ali):
+            hypothesis.extend(trailing[::-1])
+
     return dict(err=ins+del_+sub, tot=(ins+del_+cor), hyp=' '.join(hypothesis))
 
 if __name__ == '__main__':
-    read_alignment("бугай (сотих->кубометрів в) два")
+    print(read_alignment("(гупає той->*) бугай (сотих->кубометрів в) два (рази ще->*)"))
+
+    print(read_alignment("я не (що в->податково про це сказала тому що)"))
