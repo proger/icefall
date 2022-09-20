@@ -413,9 +413,11 @@ class UkAsrDataModule:
 
     @lru_cache()
     def train_other_cuts(self) -> CutSet:
-        # i ran sort -R manually on train-other cuts
         other_cuts = (
-            "train-other-shuffled",
+            ## i ran sort -R manually on train-other cuts
+            #"train-other-shuffled",
+            ## this one is from filter_train_set_2.ipynb
+            "train-other-shuffled-filtered2",
         )
         logging.info(f"About to get {other_cuts} cuts")
         def load1(part):
